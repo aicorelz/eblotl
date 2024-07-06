@@ -288,6 +288,9 @@ class TelegramBaseClient(abc.ABC):
         if isinstance(session, (str, pathlib.Path)):
             try:
                 session = SQLiteSession(str(session))
+                self.loop.create_task(
+                    session.async_init()
+                )
             except ImportError:
                 import warnings
                 warnings.warn(
@@ -684,23 +687,27 @@ class TelegramBaseClient(abc.ABC):
             else:
                 connection._proxy = proxy
 
-    def _save_states_and_entities(self: 'TelegramClient'):
+    async def _save_states_and_entities(self: 'TelegramClient'):
         entities = self._mb_entity_cache.get_all_entities()
 
         # Piggy-back on an arbitrary TL type with users and chats so the session can understand to read the entities.
         # It doesn't matter if we put users in the list of chats.
-        self.session.process_entities(types.contacts.ResolvedPeer(None, [e._as_input_peer() for e in entities], []))
+        await self.session.process_entities(
+            types.contacts.ResolvedPeer(None, [e._as_input_peer() for e in entities], [])
+        )
 
         # As a hack to not need to change the session files, save ourselves with ``id=0`` and ``access_hash`` of our ``id``.
         # This way it is possible to determine our own ID by querying for 0. However, whether we're a bot is not saved.
         if self._mb_entity_cache.self_id:
-            self.session.process_entities(types.contacts.ResolvedPeer(None, [types.InputPeerUser(0, self._mb_entity_cache.self_id)], []))
+            await self.session.process_entities(types.contacts.ResolvedPeer(None, [types.InputPeerUser(0, self._mb_entity_cache.self_id)], []))
 
         ss, cs = self._message_box.session_state()
-        self.session.set_update_state(0, types.updates.State(**ss, unread_count=0))
+        await self.session.set_update_state(0, types.updates.State(**ss, unread_count=0))
         now = datetime.datetime.now()  # any datetime works; channels don't need it
         for channel_id, pts in cs.items():
-            self.session.set_update_state(channel_id, types.updates.State(pts, 0, now, 0, unread_count=0))
+            await self.session.set_update_state(
+                channel_id, types.updates.State(pts, 0, now, 0, unread_count=0)
+            )
 
     async def _disconnect_coro(self: 'TelegramClient'):
         if self.session is None:
@@ -732,9 +739,9 @@ class TelegramBaseClient(abc.ABC):
             await asyncio.wait(self._event_handler_tasks)
             self._event_handler_tasks.clear()
 
-        self._save_states_and_entities()
+        await self._save_states_and_entities()
 
-        self.session.close()
+        await self.session.close()
 
     async def _disconnect(self: 'TelegramClient'):
         """
@@ -894,7 +901,7 @@ class TelegramBaseClient(abc.ABC):
         session = self._exported_sessions.get(cdn_redirect.dc_id)
         if not session:
             dc = await self._get_dc(cdn_redirect.dc_id, cdn=True)
-            session = self.session.clone()
+            session = await self.session.clone()
             session.set_dc(dc.id, dc.ip_address, dc.port)
             self._exported_sessions[cdn_redirect.dc_id] = session
 

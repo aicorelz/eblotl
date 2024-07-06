@@ -9,7 +9,7 @@ import typing
 import logging
 import warnings
 from collections import deque
-import sqlite3
+import aiosqlite
 
 from .. import events, utils, errors
 from ..events.common import EventBuilder, EventCommon
@@ -289,7 +289,7 @@ class UpdateMethods:
                         len(self._mb_entity_cache),
                         self._entity_cache_limit
                     )
-                    self._save_states_and_entities()
+                    await self._save_states_and_entities()
                     self._mb_entity_cache.retain(lambda id: id == self._mb_entity_cache.self_id or id in self._message_box.map)
                     if len(self._mb_entity_cache) >= self._entity_cache_limit:
                         warnings.warn('in-memory entities exceed entity_cache_limit after flushing; consider setting a larger limit')
@@ -325,7 +325,7 @@ class UpdateMethods:
                             await self.disconnect()
                             break
                         continue
-                    except (errors.TypeNotFoundError, sqlite3.OperationalError) as e:
+                    except (errors.TypeNotFoundError, aiosqlite.OperationalError) as e:
                         # User is likely doing weird things with their account or session and Telegram gets confused as to what layer they use
                         self._log[__name__].warning('Cannot get difference since the account is likely misusing the session: %s', e)
                         self._message_box.end_difference()
@@ -367,7 +367,7 @@ class UpdateMethods:
                             await self.disconnect()
                             break
                         continue
-                    except (errors.TypeNotFoundError, sqlite3.OperationalError) as e:
+                    except (errors.TypeNotFoundError, aiosqlite.OperationalError) as e:
                         self._log[__name__].warning(
                             'Cannot get difference for channel %s since the account is likely misusing the session: %s',
                             get_diff.channel.channel_id, e
@@ -514,9 +514,9 @@ class UpdateMethods:
             # inserted because this is a rather expensive operation
             # (default's sqlite3 takes ~0.1s to commit changes). Do
             # it every minute instead. No-op if there's nothing new.
-            self._save_states_and_entities()
+            await self._save_states_and_entities()
 
-            self.session.save()
+            await self.session.save()
 
     async def _dispatch_update(self: 'TelegramClient', update):
         # TODO only used for AlbumHack, and MessageBox is not really designed for this
