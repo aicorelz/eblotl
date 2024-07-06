@@ -233,7 +233,7 @@ class TelegramBaseClient(abc.ABC):
 
     # region Initialization
 
-    def __init__(
+    async def async_init(
             self: 'TelegramClient',
             session: 'typing.Union[str, pathlib.Path, Session]',
             api_id: int,
@@ -287,9 +287,7 @@ class TelegramBaseClient(abc.ABC):
         if isinstance(session, (str, pathlib.Path)):
             try:
                 session = SQLiteSession(str(session))
-                self.loop.create_task(
-                    session.async_init()
-                )
+                await session.async_init()
             except ImportError:
                 import warnings
                 warnings.warn(
@@ -310,7 +308,7 @@ class TelegramBaseClient(abc.ABC):
         # ':' in session.server_address is True if it's an IPv6 address
         if (not session.server_address or
                 (':' in session.server_address) != use_ipv6):
-            session.set_dc(
+            await session.set_dc(
                 DEFAULT_DC_ID,
                 DEFAULT_IPV6_IP if self._use_ipv6 else DEFAULT_IPV4_IP,
                 DEFAULT_PORT
@@ -911,7 +909,7 @@ class TelegramBaseClient(abc.ABC):
         if not session:
             dc = await self._get_dc(cdn_redirect.dc_id, cdn=True)
             session = await self.session.clone()
-            session.set_dc(dc.id, dc.ip_address, dc.port)
+            await session.set_dc(dc.id, dc.ip_address, dc.port)
             self._exported_sessions[cdn_redirect.dc_id] = session
 
         self._log[__name__].info('Creating new CDN client')
