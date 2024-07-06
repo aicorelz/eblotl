@@ -38,7 +38,7 @@ class MemorySession(Session):
         self._entities = set()
         self._update_states = {}
 
-    def set_dc(self, dc_id, server_address, port):
+    async def set_dc(self, dc_id, server_address, port):
         self._dc_id = dc_id or 0
         self._server_address = server_address
         self._port = port
@@ -71,13 +71,13 @@ class MemorySession(Session):
     def takeout_id(self, value):
         self._takeout_id = value
 
-    def get_update_state(self, entity_id):
+    async def get_update_state(self, entity_id):
         return self._update_states.get(entity_id, None)
 
-    def set_update_state(self, entity_id, state):
+    async def set_update_state(self, entity_id, state):
         self._update_states[entity_id] = state
 
-    def get_update_states(self):
+    async def get_update_states(self):
         return self._update_states.items()
 
     def close(self):
@@ -90,13 +90,13 @@ class MemorySession(Session):
         pass
 
     @staticmethod
-    def _entity_values_to_row(id, hash, username, phone, name):
+    async def _entity_values_to_row(id, hash, username, phone, name):
         # While this is a simple implementation it might be overrode by,
         # other classes so they don't need to implement the plural form
         # of the method. Don't remove.
         return id, hash, username, phone, name
 
-    def _entity_to_row(self, e):
+    async def _entity_to_row(self, e):
         if not isinstance(e, TLObject):
             return
         try:
@@ -121,11 +121,11 @@ class MemorySession(Session):
             username = username.lower()
         phone = getattr(e, 'phone', None)
         name = utils.get_display_name(e) or None
-        return self._entity_values_to_row(
+        return await self._entity_values_to_row(
             marked_id, p_hash, username, phone, name
         )
 
-    def _entities_to_rows(self, tlo):
+    async def _entities_to_rows(self, tlo):
         if not isinstance(tlo, TLObject) and utils.is_list_like(tlo):
             # This may be a list of users already for instance
             entities = tlo
@@ -142,36 +142,38 @@ class MemorySession(Session):
 
         rows = []  # Rows to add (id, hash, username, phone, name)
         for e in entities:
-            row = self._entity_to_row(e)
+            row = await self._entity_to_row(e)
             if row:
                 rows.append(row)
         return rows
 
-    def process_entities(self, tlo):
-        self._entities |= set(self._entities_to_rows(tlo))
+    async def process_entities(self, tlo):
+        self._entities |= set(
+            await self._entities_to_rows(tlo)
+        )
 
-    def get_entity_rows_by_phone(self, phone):
+    async def get_entity_rows_by_phone(self, phone):
         try:
             return next((id, hash) for id, hash, _, found_phone, _
                         in self._entities if found_phone == phone)
         except StopIteration:
             pass
 
-    def get_entity_rows_by_username(self, username):
+    async def get_entity_rows_by_username(self, username):
         try:
             return next((id, hash) for id, hash, found_username, _, _
                         in self._entities if found_username == username)
         except StopIteration:
             pass
 
-    def get_entity_rows_by_name(self, name):
+    async def get_entity_rows_by_name(self, name):
         try:
             return next((id, hash) for id, hash, _, _, found_name
                         in self._entities if found_name == name)
         except StopIteration:
             pass
 
-    def get_entity_rows_by_id(self, id, exact=True):
+    async def get_entity_rows_by_id(self, id, exact=True):
         try:
             if exact:
                 return next((found_id, hash) for found_id, hash, _, _, _
@@ -187,7 +189,7 @@ class MemorySession(Session):
         except StopIteration:
             pass
 
-    def get_input_entity(self, key):
+    async def get_input_entity(self, key):
         try:
             if key.SUBCLASS_OF_ID in (0xc91c90b6, 0xe669bf46, 0x40f202fd):
                 # hex(crc32(b'InputPeer', b'InputUser' and b'InputChannel'))
@@ -207,21 +209,21 @@ class MemorySession(Session):
         if isinstance(key, str):
             phone = utils.parse_phone(key)
             if phone:
-                result = self.get_entity_rows_by_phone(phone)
+                result = await self.get_entity_rows_by_phone(phone)
             else:
                 username, invite = utils.parse_username(key)
                 if username and not invite:
-                    result = self.get_entity_rows_by_username(username)
+                    result = await self.get_entity_rows_by_username(username)
                 else:
                     tup = utils.resolve_invite_link(key)[1]
                     if tup:
-                        result = self.get_entity_rows_by_id(tup, exact=False)
+                        result = await self.get_entity_rows_by_id(tup, exact=False)
 
         elif isinstance(key, int):
-            result = self.get_entity_rows_by_id(key, exact)
+            result = await self.get_entity_rows_by_id(key, exact)
 
         if not result and isinstance(key, str):
-            result = self.get_entity_rows_by_name(key)
+            result = await self.get_entity_rows_by_name(key)
 
         if result:
             entity_id, entity_hash = result  # unpack resulting tuple
@@ -236,14 +238,14 @@ class MemorySession(Session):
         else:
             raise ValueError('Could not find input entity with key ', key)
 
-    def cache_file(self, md5_digest, file_size, instance):
+    async def cache_file(self, md5_digest, file_size, instance):
         if not isinstance(instance, (InputDocument, InputPhoto)):
             raise TypeError('Cannot cache %s instance' % type(instance))
         key = (md5_digest, file_size, _SentFileType.from_type(type(instance)))
         value = (instance.id, instance.access_hash)
         self._files[key] = value
 
-    def get_file(self, md5_digest, file_size, cls):
+    async def get_file(self, md5_digest, file_size, cls):
         key = (md5_digest, file_size, _SentFileType.from_type(cls))
         try:
             return cls(*self._files[key])

@@ -178,13 +178,17 @@ class SQLiteSession(MemorySession):
         else:
             self._auth_key = None
 
-    @MemorySession.auth_key.setter
-    async def auth_key(self, value):
+    async def set_auth_key(
+            self,
+            value
+    ):
         self._auth_key = value
         await self._update_session_table()
 
-    @MemorySession.takeout_id.setter
-    async def takeout_id(self, value):
+    async def set_takeout_id(
+            self,
+            value
+    ):
         self._takeout_id = value
         await self._update_session_table()
 
