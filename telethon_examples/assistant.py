@@ -16,7 +16,7 @@ import os
 import sys
 import time
 
-from telethon import TelegramClient
+from eblotl import TelegramClient
 
 try:
     # Standalone script assistant.py with folder plugins/

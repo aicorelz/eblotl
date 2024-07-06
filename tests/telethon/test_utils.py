@@ -3,8 +3,8 @@ import pathlib
 
 import pytest
 
-from telethon import utils
-from telethon.tl.types import (
+from eblotl import utils
+from eblotl.tl.types import (
     MessageMediaGame, Game, PhotoEmpty
 )
 

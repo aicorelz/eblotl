@@ -1,9 +1,9 @@
 """
-Tests for `telethon.crypto.rsa`.
+Tests for `eblotl.crypto.rsa`.
 """
 import pytest
 
-from telethon.crypto import rsa
+from eblotl.crypto import rsa
 
 
 @pytest.fixture

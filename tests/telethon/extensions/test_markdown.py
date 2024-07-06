@@ -1,8 +1,8 @@
 """
-Tests for `telethon.extensions.markdown`.
+Tests for `eblotl.extensions.markdown`.
 """
-from telethon.extensions import markdown
-from telethon.tl.types import MessageEntityBold, MessageEntityItalic, MessageEntityTextUrl
+from eblotl.extensions import markdown
+from eblotl.tl.types import MessageEntityBold, MessageEntityItalic, MessageEntityTextUrl
 
 
 def test_entity_edges():

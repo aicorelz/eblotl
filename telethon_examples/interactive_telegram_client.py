@@ -4,10 +4,10 @@ import sys
 import time
 from getpass import getpass
 
-from telethon import TelegramClient, events
-from telethon.errors import SessionPasswordNeededError
-from telethon.network import ConnectionTcpAbridged
-from telethon.utils import get_display_name
+from eblotl import TelegramClient, events
+from eblotl.errors import SessionPasswordNeededError
+from eblotl.network import ConnectionTcpAbridged
+from eblotl.utils import get_display_name
 
 
 def sprint(string, *args, **kwargs):

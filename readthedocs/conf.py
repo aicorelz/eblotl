@@ -73,7 +73,7 @@ author = 'Lonami'
 # built documents.
 #
 # The short X.Y version.
-with open(os.path.join(root, 'telethon', 'version.py'), 'r') as f:
+with open(os.path.join(root, 'eblotl', 'version.py'), 'r') as f:
     version = re.search(r"^__version__\s+=\s+'(.*)'$",
                         f.read(), flags=re.MULTILINE).group(1)
 
@@ -193,7 +193,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'telethon', 'Telethon Documentation',
+    (master_doc, 'eblotl', 'Telethon Documentation',
      [author], 1)
 ]
 
