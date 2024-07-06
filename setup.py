@@ -252,7 +252,7 @@ def main(argv):
             packages=find_packages(exclude=[
                 'telethon_*', 'tests*'
             ]),
-            install_requires=['pyaes', 'rsa'],
+            install_requires=['pyaes', 'rsa', 'aiosqlite'],
             extras_require={
                 'cryptg': ['cryptg']
             }
